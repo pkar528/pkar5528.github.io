@@ -1,0 +1,621 @@
+
+
+
+<p>d-- title: 'Project 2: Modeling, Testing, and Predicting' author: &quot;Priyanka Kar pk8398&quot; date: '' output: html_document: toc: yes toc_float: collapsed: no smooth_scroll: yes ---</p>
+<div id="modeling" class="section level1">
+<h1>Modeling</h1>
+<pre class="r"><code>library(readxl)
+library(readr)
+library(tidyr)
+library(tidyverse)
+library(cluster)
+library(GGally)
+library(kableExtra)
+library(rstatix)
+library(plotROC)
+library(glmnet)
+library(lmtest)
+fish &lt;- read_xlsx(&quot;FishData.xlsx&quot;)
+
+#Tidying Data
+fish$Hours &lt;- fish$Hours %&gt;% replace_na(20)
+fish &lt;- fish %&gt;% mutate(&quot;Sell Price 1&quot; = NULL, &quot;Sell Price 2&quot; = NULL, &quot;Chance to Dart&quot; = NULL) %&gt;% rename(&quot;Price&quot; = &quot;Sell Price 3&quot;, &quot;Time Range&quot; = NULL)
+fish &lt;- fish %&gt;% mutate(&quot;Conditional_Weather&quot;= case_when(Weather == &quot;Any&quot; ~ 0 , Weather == &quot;Rain/Snow&quot; ~ 1 , Weather == &quot;Rain&quot; ~ 1, Weather == &quot;Sunny&quot; ~ 1)) %&gt;% mutate(&quot;Weather&quot; = NULL, &quot;Time Range&quot; = NULL) %&gt;% rename(&#39;Darting_Intensity&#39; = &#39;Darting Intesity&#39;, &#39;Darting_Duration&#39; = &quot;Darting Duration&quot;, &#39;Darting_Style&#39; = &quot;Darting Randomness&quot; )</code></pre>
+<ul>
+<li><strong>0. (5 pts)</strong> Introduce your dataset and each of your variables (or just your main variables if you have lots) in a paragraph. What are they measuring? How many observations?</li>
+</ul>
+<pre class="r"><code>glimpse(fish)</code></pre>
+<pre><code>## Rows: 45
+## Columns: 10
+## $ Fish &lt;chr&gt; &quot;Bream&quot;, &quot;Bullhead&quot;, &quot;Carp&quot;, &quot;Albacore&quot;,
+&quot;Anchovy&quot;, &quot;Angler&quot;, &quot;Catfis…
+## $ Price &lt;dbl&gt; 67, 112, 45, 112, 45, 1350, 300, 75, 2250,
+150, 127, 67, 1500, 120, 4…
+## $ Season &lt;chr&gt; &quot;All&quot;, &quot;All&quot;, &quot;All&quot;, &quot;3-Fall&quot;,
+&quot;1-Spring&quot;, &quot;3-Fall&quot;, &quot;1-Spring&quot;, &quot;All…
+## $ Hours &lt;dbl&gt; 20, 20, 20, 13, 20, 20, 18, 20, 18, 13, 8,
+20, 16, 12, 20, 20, 13, 20…
+## $ Location &lt;chr&gt; &quot;River&quot;, &quot;Lake&quot;, &quot;Lake&quot;, &quot;Ocean&quot;,
+&quot;Ocean&quot;, &quot;River&quot;, &quot;River&quot;, &quot;River&quot;,…
+## $ Darting_Style &lt;chr&gt; &quot;mixed&quot;, &quot;dart&quot;, &quot;smooth&quot;,
+&quot;smooth&quot;, &quot;smooth&quot;, &quot;mixed&quot;, &quot;mixed&quot;, &quot;dar…
+## $ Darting_Intensity &lt;dbl&gt; 20, 1, 18, 12, 12, 15, 12, 12,
+20, 24, 12, 10, 27, 10, 8, 8, 11, 32, …
+## $ Darting_Duration &lt;dbl&gt; 40, 16, 18, 30, 30, 50, 72, 24,
+20, 32, 80, 35, 27, 33, 20, 8, 30, 32…
+## $ Difficulty &lt;dbl&gt; 35, 46, 15, 60, 30, 85, 75, 35, 95,
+78, 70, 50, 100, 50, 25, 85, 50, …
+## $ Conditional_Weather &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 1, 0, 0,
+0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, …</code></pre>
+<p><em>My dataset is centered around the different fish that can be caught in the PC game &quot;Stardew Valley&quot;. It measures how much each species of fish sells for, what season and geographic location it can be caught in, if there is a special weather condition where the fish is available to be caught, how many hours a day are available to catch the fish, and lastly, different measures describing the fish's movement (separated as type of darting style, intensity of darting movement, duration of each dart, and the overall difficulty of catching the fish). There are 45 observations total, as there are 45 different fish species in the game.</em></p>
+<ul>
+<li><strong>1. (15 pts)</strong> Perform a MANOVA testing whether any of your numeric variables (or a subset of them, if including them all is unreasonable or doesn't make sense) show a mean difference across levels of one of your categorical variables (3). If they do, perform univariate ANOVAs to find response(s) showing a mean difference across groups (3), and perform post-hoc t tests to find which groups differ (3). Discuss the number of tests you have performed, calculate the probability of at least one type I error (if unadjusted), and adjust the significance level accordingly (bonferroni correction) before discussing significant differences (3). Briefly discuss MANOVA assumptions and whether or not they are likely to have been met (no need for anything too in-depth) (2).</li>
+</ul>
+<pre class="r"><code>man1&lt;-manova(cbind(Price, Darting_Intensity, Darting_Duration, Difficulty, Hours)~Location, data=fish)
+summary(man1)</code></pre>
+<pre><code>## Df Pillai approx F num Df den Df Pr(&gt;F)
+## Location 4 0.83783 2.0666 20 156 0.007231 **
+## Residuals 40
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1</code></pre>
+<p><em>Interestingly, the MANOVA test showed that there is a significant mean difference across levels for the numeric variables based on the location fish are available to catch in, with a p value of 0.007. Because it is significant, I will perform a univariate ANOVA test.</em></p>
+<pre class="r"><code>summary.aov(man1)</code></pre>
+<pre><code>## Response Price :
+## Df Sum Sq Mean Sq F value Pr(&gt;F)
+## Location 4 53016955 13254239 2.3572 0.06986 .
+## Residuals 40 224914851 5622871
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1
+##
+## Response Darting_Intensity :
+## Df Sum Sq Mean Sq F value Pr(&gt;F)
+## Location 4 1107.5 276.873 3.9439 0.008622 **
+## Residuals 40 2808.2 70.204
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1
+##
+## Response Darting_Duration :
+## Df Sum Sq Mean Sq F value Pr(&gt;F)
+## Location 4 344.6 86.148 0.2938 0.8803
+## Residuals 40 11728.7 293.216
+##
+## Response Difficulty :
+## Df Sum Sq Mean Sq F value Pr(&gt;F)
+## Location 4 4407.6 1101.89 2.2593 0.0797 .
+## Residuals 40 19508.2 487.71
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1
+##
+## Response Hours :
+## Df Sum Sq Mean Sq F value Pr(&gt;F)
+## Location 4 331.34 82.834 5.1815 0.00185 **
+## Residuals 40 639.46 15.987
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1</code></pre>
+<p><em>Performing the univariate ANOVA, I found that the response variables that show a mean difference across groups are darting intensity and hours, with p values of 0.009 and 0.002 respectively.</em></p>
+<pre class="r"><code>#t-tests
+pairwise.t.test(fish$Hours, fish$Location, p.adj= &quot;none&quot;)</code></pre>
+<pre><code>## 
+##  Pairwise comparisons using t tests with pooled SD 
+## 
+## data:  fish$Hours and fish$Location 
+## 
+##       Desert Lake   Mines  Ocean 
+## Lake  0.5829 -      -      -     
+## Mines 0.3134 0.4677 -      -     
+## Ocean 0.1831 0.0017 0.0004 -     
+## River 0.9598 0.2957 0.0848 0.0124
+## 
+## P value adjustment method: none</code></pre>
+<pre class="r"><code>pairwise.t.test(fish$Darting_Intensity, fish$Location, p.adj= &quot;none&quot;)</code></pre>
+<pre><code>## 
+##  Pairwise comparisons using t tests with pooled SD 
+## 
+## data:  fish$Darting_Intensity and fish$Location 
+## 
+##       Desert  Lake    Mines   Ocean  
+## Lake  0.40083 -       -       -      
+## Mines 0.03237 0.04129 -       -      
+## Ocean 0.95271 0.10601 0.00039 -      
+## River 0.51769 0.69806 0.01110 0.15553
+## 
+## P value adjustment method: none</code></pre>
+<pre class="r"><code>1-.95^4 #Type 1 Error</code></pre>
+<pre><code>## [1] 0.1854938</code></pre>
+<pre class="r"><code>.05/9 #Bonferroni Correction</code></pre>
+<pre><code>## [1] 0.005555556</code></pre>
+<pre class="r"><code>#Covariance matrices for each group for homogeneity
+#lapply(split(DVs,group), cov)
+
+#Multivariate normality for each group
+ggplot(fish, aes(x = Darting_Intensity, y = Hours)) + geom_point(alpha = .5) + geom_density_2d(h=2) + coord_fixed() + facet_wrap(~Location)</code></pre>
+<p><img src="/project/project2_files/figure-html/unnamed-chunk-5-1.png" width="768" style="display: block; margin: auto;" /></p>
+<p><em>The post-hoc t-tests showed that I conducted 4 hypothesis tests because I performed 1 MANOVA test, 1 univariate ANOVA test, and 2 post-hoc t tests. Therefore, my probability of at least 1 type-1 error is 1-.95^4 = .1855. The bonferroni correction was .05/9=0.006. After taking into consideration the correction, there was a significant difference for hours between the location groups between the lake and the ocean at a value of 0.002, and between the ocean and the mines at a value of 0.0004. Similarly, the only significant difference for darting intensity between the location groups was between the ocean and the mines at a value of 0.0004. I do not think the homogeneity assumption was met because the covariance matrices are very inconsistent between groups. I also do not think the multivariate normality assumption was met because data points for the Lake and Mines locations were specifically very spread out, rather than rounded, and I am unable to identify normality for the Desert location, which only has 2 data points.</em></p>
+<ul>
+<li><strong>2. (10 pts)</strong> Perform some kind of randomization test on your data (that makes sense). The statistic can be anything you want (mean difference, correlation, F-statistic/ANOVA, chi-squared), etc. State null and alternative hypotheses, perform the test, and interpret the results (7). Create a plot visualizing the null distribution and the test statistic (3).</li>
+</ul>
+<pre class="r"><code>#Hypotheses
+#H_0= Difficulty of catching a species of fish is the same regardless of whether the fish has a darting style of mixed or smooth.
+#H_A= Difficulty of catching a species of fish is different depending on if the fish has a darting style of mixed or smooth.
+
+#Randomization Test
+rand_dist&lt;-vector()
+for(i in 1:5000){
+new&lt;-data.frame(Difficulty=sample(fish$Difficulty),Darting_Style=fish$Darting_Style)
+rand_dist[i]&lt;-mean(new[new$Darting_Style==&quot;mixed&quot;,]$Difficulty)-
+mean(new[new$Darting_Style==&quot;smooth&quot;,]$Difficulty)}
+
+#Mean Difference
+mean(new[new$Darting_Style==&quot;mixed&quot;,]$Difficulty) - mean(new[new$Darting_Style==&quot;smooth&quot;,]$Difficulty)</code></pre>
+<pre><code>## [1] 16.7</code></pre>
+<pre class="r"><code>#Plot
+{hist(rand_dist,main=&quot;&quot;,ylab=&quot;&quot;); abline(v = c(-13.375, 13.375),col=&quot;red&quot;)}</code></pre>
+<p><img src="/project/project2_files/figure-html/unnamed-chunk-6-1.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>#p-value
+mean(rand_dist &gt; 13.375 | rand_dist &lt; -13.375)</code></pre>
+<pre><code>## [1] 0.1594</code></pre>
+<p><em>I wanted to find the mean differences of fish catching difficulty based on the darting style of the fish species, because presumably, some darting styles should make a fish harder to catch than others. I reasoned that fish with a mixed style of darting would be the most unpredictable, and therefore hardest to catch. The smooth darting style also sounded like it could be attached to lower difficulty fish. These are the two categories I compared. My null hypothesis was &quot;Difficulty of catching a species of fish is the same regardless of whether the fish has a darting style of mixed or smooth&quot;, and my alternative hypothesis was &quot;Difficulty of catching a species of fish is different depending on if the fish has a darting style of mixed or smooth&quot;. After performing the randomization test, I found that the p-value was 0.1702, which is not significant. Therefore, I failed to reject the null hypothesis and concluded that fish catching difficulty is the same regardless of a smooth or mixed darting style.</em></p>
+<ul>
+<li><strong>3. (35 pts)</strong> Build a linear regression model predicting one of your response variables from at least 2 other variables, including their interaction. Mean-center any numeric variables involved in the interaction.</li>
+</ul>
+<pre class="r"><code>#Coefficient Estimates
+fit &lt;- lm(Price~ Difficulty, data = fish)
+summary(fit)</code></pre>
+<pre><code>##
+## Call:
+## lm(formula = Price ~ Difficulty, data = fish)
+##
+## Residuals:
+## Min 1Q Median 3Q Max
+## -2070.0 -1013.3 -99.8 329.1 13884.8
+##
+## Coefficients:
+## Estimate Std. Error t value Pr(&gt;|t|)
+## (Intercept) -2107.92 957.12 -2.202 0.0331 *
+## Difficulty 46.35 14.84 3.122 0.0032 **
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1
+##
+## Residual standard error: 2295 on 43 degrees of freedom
+## Multiple R-squared: 0.1848, Adjusted R-squared: 0.1659
+## F-statistic: 9.75 on 1 and 43 DF, p-value: 0.003203</code></pre>
+<pre class="r"><code>#Regression Plot
+fish%&gt;%ggplot(aes(Difficulty,Price))+geom_point()+geom_smooth(method = &#39;lm&#39;,se=F) + ggtitle(&quot;Linear Regression of Fish Catching Difficulty on Selling Price&quot;) + xlab(&quot;Catching Difficulty&quot;) + ylab(&quot;Selling Price (G)&quot;)</code></pre>
+<p><img src="/project/project2_files/figure-html/unnamed-chunk-7-1.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>#Assumptions
+resid &lt;- fit$residuals
+fitted &lt;- fit$fitted.values
+shapiro.test(resid) #Normality</code></pre>
+<pre><code>## 
+##  Shapiro-Wilk normality test
+## 
+## data:  resid
+## W = 0.45577, p-value = 1.065e-11</code></pre>
+<pre class="r"><code>bptest(fit) #Homoskedacity</code></pre>
+<pre><code>## 
+##  studentized Breusch-Pagan test
+## 
+## data:  fit
+## BP = 5.1777, df = 1, p-value = 0.02288</code></pre>
+<pre class="r"><code>ggplot()+geom_point(aes(fitted,resid))+geom_hline(yintercept=0, col=&quot;red&quot;) #Linearity</code></pre>
+<p><img src="/project/project2_files/figure-html/unnamed-chunk-7-2.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>#Regression with Standard Errors
+coeftest(fit)</code></pre>
+<pre><code>##
+## t test of coefficients:
+##
+## Estimate Std. Error t value Pr(&gt;|t|)
+## (Intercept) -2107.918 957.122 -2.2024 0.033051 *
+## Difficulty 46.347 14.843 3.1225 0.003203 **
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1</code></pre>
+<pre class="r"><code>#Proportion of Variation Explained
+(sum((fish$Price-mean(fish$Price))^2)-sum(fit$residuals^2))/sum((fish$Price-mean(fish$Price))^2)</code></pre>
+<pre><code>## [1] 0.1848341</code></pre>
+<p><em>The coefficient estimate for difficulty says that for every 1 unit increase in difficulty, selling price increases by 46.35 gold, on average. The normality assumption is not intact because the p-value of 1.065e-11 from the Shapiro-Wilk test means reject the null hypothesis of the true distribution being normal. The homoskedacity assumption is not intact because the p-value of 0.023 is significant, so the homoskedacity null hypothesis is rejected. Lastly, the plot does shows a significant curve of points, so the linearity assumption is not intact After recomputing the regression for robust standard errors, the difficulty coefficient estimate is not significant, even though it appeared significant originally. The proportion of the variation in selling price explained by difficulty of catching the fish is 0.1848.</em></p>
+<pre class="r"><code>#Coefficient Estimates
+fit2 &lt;- lm(Price~Hours, data= fish)
+summary(fit2)</code></pre>
+<pre><code>##
+## Call:
+## lm(formula = Price ~ Hours, data = fish)
+##
+## Residuals:
+## Min 1Q Median 3Q Max
+## -802.5 -667.5 -483.6 -303.9 16166.4
+##
+## Coefficients:
+## Estimate Std. Error t value Pr(&gt;|t|)
+## (Intercept) 153.09 1299.33 0.118 0.907
+## Hours 34.72 81.42 0.426 0.672
+##
+## Residual standard error: 2537 on 43 degrees of freedom
+## Multiple R-squared: 0.004211, Adjusted R-squared:
+-0.01895
+## F-statistic: 0.1818 on 1 and 43 DF, p-value: 0.6719</code></pre>
+<pre class="r"><code>#Regression Plot
+fish%&gt;%ggplot(aes(Hours,Price))+geom_point()+geom_smooth(method = &#39;lm&#39;,se=F) + ggtitle(&quot;Linear Regression of Hours of Fish Availability on Selling Price&quot;) + xlab(&quot;Fish Availability (hrs)&quot;) + ylab(&quot;Selling Price (G)&quot;)</code></pre>
+<p><img src="/project/project2_files/figure-html/unnamed-chunk-8-1.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>#Assumptions
+resid &lt;- fit2$residuals
+fitted &lt;- fit2$fitted.values
+shapiro.test(resid) #Normality</code></pre>
+<pre><code>## 
+##  Shapiro-Wilk normality test
+## 
+## data:  resid
+## W = 0.25738, p-value = 9.507e-14</code></pre>
+<pre class="r"><code>bptest(fit2) #Homoskedacity</code></pre>
+<pre><code>## 
+##  studentized Breusch-Pagan test
+## 
+## data:  fit2
+## BP = 0.035774, df = 1, p-value = 0.85</code></pre>
+<pre class="r"><code>ggplot()+geom_point(aes(fitted,resid))+geom_hline(yintercept=0, col=&quot;red&quot;) #Linearity</code></pre>
+<p><img src="/project/project2_files/figure-html/unnamed-chunk-8-2.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>#Regression with Standard Errors
+coeftest(fit2)</code></pre>
+<pre><code>## 
+## t test of coefficients:
+## 
+##             Estimate Std. Error t value Pr(&gt;|t|)
+## (Intercept)  153.093   1299.334  0.1178   0.9068
+## Hours         34.722     81.424  0.4264   0.6719</code></pre>
+<pre class="r"><code>#Proportion of Variation Explained
+(sum((fish$Price-mean(fish$Price))^2)-sum(fit2$residuals^2))/sum((fish$Price-mean(fish$Price))^2)</code></pre>
+<pre><code>## [1] 0.00421109</code></pre>
+<p><em>The coefficient estimate for hours says that for every 1 unit increase in hours of fish availability, selling price increases by 34.72 gold, on average. The normality assumption is not intact because the p-value of 9.507e-14 from the Shapiro-Wilk test means reject the null hypothesis of the true distribution being normal. T The homoskedacity assumption is intact because the p-value of 0.85 is not significant, so we fail to reject the homoskedacity null hypothesis. Lastly, the plot does not show a significant curve of points, so the linearity assumption is fine. After recomputing the regression for robust standard errors, the difficulty coefficient estimate is not significant, which is the same as the original regression test, where the results were not significant. The proportion of the variation in selling price explained by difficulty of catching the fish is 0.0042.</em></p>
+<pre class="r"><code>#Centering Numeric Variables
+fish$Difficulty_c &lt;- fish$Difficulty - mean(fish$Difficulty, na.rm = T)
+fish$Hours_c &lt;- fish$Hours - mean(fish$Hours, na.rm = T)
+#Coefficient Estimates
+fit3 &lt;- lm(Price~Hours_c*Difficulty_c, data= fish)
+summary(fit3)</code></pre>
+<pre><code>##
+## Call:
+## lm(formula = Price ~ Hours_c * Difficulty_c, data =
+fish)
+##
+## Residuals:
+## Min 1Q Median 3Q Max
+## -2100.7 -863.4 -356.3 331.5 13723.9
+##
+## Coefficients:
+## Estimate Std. Error t value Pr(&gt;|t|)
+## (Intercept) 692.6311 351.6877 1.969 0.05568 .
+## Hours_c 70.6091 76.5143 0.923 0.36150
+## Difficulty_c 47.9357 15.8606 3.022 0.00431 **
+## Hours_c:Difficulty_c 0.5637 3.6068 0.156 0.87658
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1
+##
+## Residual standard error: 2324 on 41 degrees of freedom
+## Multiple R-squared: 0.2032, Adjusted R-squared: 0.1449
+## F-statistic: 3.486 on 3 and 41 DF, p-value: 0.02414</code></pre>
+<pre class="r"><code>#Regression Plot
+fish%&gt;%ggplot(aes(Hours_c*Difficulty_c,Price))+geom_point()+geom_smooth(method = &#39;lm&#39;,se=F) + ggtitle(&quot;Linear Regression of the Difficulty and Availability Interaction on Selling Price&quot;) + xlab(&quot;Interaction of Availability and Difficulty (hrs*G)&quot;) + ylab(&quot;Selling Price (G)&quot;)</code></pre>
+<p><img src="/project/project2_files/figure-html/unnamed-chunk-9-1.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>#Assumptions
+resid &lt;- fit3$residuals
+fitted &lt;- fit3$fitted.values
+shapiro.test(resid) #Normality</code></pre>
+<pre><code>## 
+##  Shapiro-Wilk normality test
+## 
+## data:  resid
+## W = 0.45831, p-value = 1.139e-11</code></pre>
+<pre class="r"><code>bptest(fit3) #Homoskedacity</code></pre>
+<pre><code>## 
+##  studentized Breusch-Pagan test
+## 
+## data:  fit3
+## BP = 5.548, df = 3, p-value = 0.1358</code></pre>
+<pre class="r"><code>ggplot()+geom_point(aes(fitted,resid))+geom_hline(yintercept=0, col=&quot;red&quot;) #Linearity</code></pre>
+<p><img src="/project/project2_files/figure-html/unnamed-chunk-9-2.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>#Regression with Standard Errors
+coeftest(fit3)</code></pre>
+<pre><code>##
+## t test of coefficients:
+##
+## Estimate Std. Error t value Pr(&gt;|t|)
+## (Intercept) 692.63109 351.68766 1.9694 0.05568 .
+## Hours_c 70.60915 76.51429 0.9228 0.36150
+## Difficulty_c 47.93569 15.86057 3.0223 0.00431 **
+## Hours_c:Difficulty_c 0.56369 3.60681 0.1563 0.87658
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1</code></pre>
+<pre class="r"><code>#Proportion of Variation Explained
+(sum((fish$Price-mean(fish$Price))^2)-sum(fit3$residuals^2))/sum((fish$Price-mean(fish$Price))^2)</code></pre>
+<pre><code>## [1] 0.2032326</code></pre>
+<p><em>The coefficient estimate for centered hours of availability says that controlling for fish catching difficulty, price increases by 70.61 gold for every 1 hour increase, on average. The coefficient estimate for centered amount of catching difficulty says that controlling for hours of availability, price increases by 47.94 gold for every 1 unit increase in centered difficulty, on average. The coefficient estimate for the interaction between centered hours of availability and centered catching difficulty says that the slope for centered hours of availability by centered catching difficulty on selling price is 0.5637 higher for every 1 unit increase, on average. The normality assumption is not intact because the p-value of 1.139e-11 from the Shapiro-Wilk test means reject the null hypothesis of the true distribution being normal. T The homoskedacity assumption is intact because the p-value of 0.1358 is not significant, so we fail to reject the homoskedacity null hypothesis. Lastly, the plot shows a significant curve of points, so the linearity assumption is not intact After recomputing the regression for robust standard errors, the coefficient estimates are not significant, which is different from the original test because originally the interaction between hours_c and difficulty_c was significant. The proportion of the variation in selling price explained by difficulty of catching the fish is 0.2032.</em></p>
+<ul>
+<li><strong>4. (5 pts)</strong> Rerun same regression model (with the interaction), but this time compute bootstrapped standard errors (either by resampling observations or residuals). Discuss any changes you observe in SEs and p-values using these SEs compared to the original SEs and the robust SEs)</li>
+</ul>
+<pre class="r"><code>boot_dat &lt;- sample_frac(fish, replace = T)
+samp_distn &lt;- replicate(5000, {
+    boot_dat &lt;- sample_frac(fish, replace = T)
+    fit4 &lt;- lm(Price ~ Hours_c*Difficulty_c, data = boot_dat)
+    coef(fit4)
+})
+samp_distn %&gt;% t %&gt;% as.data.frame %&gt;% summarize_all(sd)</code></pre>
+<pre><code>##   (Intercept)  Hours_c Difficulty_c Hours_c:Difficulty_c
+## 1    339.5027 53.09594     32.34152             2.669353</code></pre>
+<p><em>The bootstrapped standard errors for resampled observations differed slightly from the robust standard errors, and differed a large amount from the original standard errors. The bootstrapped standard errors would not have altered the fact that these interactions are not significant, because they do not differ much from the robust standard errors, and the p-values accounting for the robust standard errors were not close to significant.</em></p>
+<ul>
+<li><strong>5. (25 pts)</strong> Fit a logistic regression model predicting a binary variable (if you don't have one, make/get one) from at least two explanatory variables (interaction not necessary).</li>
+</ul>
+<pre class="r"><code>#Coefficient Estimates
+fit5 &lt;- glm(Conditional_Weather ~ Season+Location, data = fish, family = &quot;binomial&quot;)
+summary(fit5)</code></pre>
+<pre><code>##
+## Call:
+## glm(formula = Conditional_Weather ~ Season + Location,
+family = &quot;binomial&quot;,
+## data = fish)
+##
+## Deviance Residuals:
+## Min 1Q Median 3Q Max
+## -1.46154 -0.66547 -0.00009 0.00000 1.79945
+##
+## Coefficients:
+## Estimate Std. Error z value Pr(&gt;|z|)
+## (Intercept) 16.7807 14134.3509 0.001 0.999
+## Season2-Summer -0.5021 1.0713 -0.469 0.639
+## Season3-Fall -2.4033 1.5312 -1.569 0.117
+## Season4-Winter -0.6407 1.6307 -0.393 0.694
+## SeasonAll -37.3468 6526.6268 -0.006 0.995
+## LocationLake -17.5382 14134.3509 -0.001 0.999
+## LocationMines 1.1928 13276.1768 0.000 1.000
+## LocationOcean -17.6735 14134.3509 -0.001 0.999
+## LocationRiver -15.6316 14134.3509 -0.001 0.999
+##
+## (Dispersion parameter for binomial family taken to be 1)
+##
+## Null deviance: 47.674 on 44 degrees of freedom
+## Residual deviance: 30.676 on 36 degrees of freedom
+## AIC: 48.676
+##
+## Number of Fisher Scoring iterations: 19</code></pre>
+<pre class="r"><code>#Confusion Matrix
+prob &lt;- predict(fit5, type = &quot;response&quot;)
+
+class_diag&lt;-function(probs,truth){
+
+  tab&lt;-table(factor(probs&gt;.5,levels=c(&quot;FALSE&quot;,&quot;TRUE&quot;)),truth)
+  acc=sum(diag(tab))/sum(tab)
+  sens=tab[2,2]/colSums(tab)[2]
+  spec=tab[1,1]/colSums(tab)[1]
+  ppv=tab[2,2]/rowSums(tab)[2]
+
+  if(is.numeric(truth)==FALSE &amp; is.logical(truth)==FALSE) truth&lt;-as.numeric(truth)-1
+
+  #CALCULATE EXACT AUC
+  ord&lt;-order(probs, decreasing=TRUE)
+  probs &lt;- probs[ord]; truth &lt;- truth[ord]
+
+  TPR=cumsum(truth)/max(1,sum(truth)) 
+  FPR=cumsum(!truth)/max(1,sum(!truth))
+
+  dup&lt;-c(probs[-1]&gt;=probs[-length(probs)], FALSE)
+  TPR&lt;-c(0,TPR[!dup],1); FPR&lt;-c(0,FPR[!dup],1)
+
+  n &lt;- length(TPR)
+  auc&lt;- sum( ((TPR[-1]+TPR[-n])/2) * (FPR[-1]-FPR[-n]) )
+
+  data.frame(acc,sens,spec,ppv,auc)
+}
+
+class_diag(prob,fish$Conditional_Weather)</code></pre>
+<pre><code>##         acc sens      spec       ppv       auc
+## 1 0.8444444  0.5 0.9428571 0.7142857 0.8342857</code></pre>
+<pre class="r"><code>#Density Plot
+fish$logit&lt;-predict(fit5)
+factor= cut(fish$Conditional_Weather, 2)
+fish%&gt;%ggplot(aes(x = logit,color=factor,fill=factor))+geom_density(alpha=.4)+
+theme(legend.position=c(.85,.85))+geom_vline(xintercept=0)+xlab(&quot;predictor (logit)&quot;)</code></pre>
+<p><img src="/project/project2_files/figure-html/unnamed-chunk-11-1.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>#ROC Plot
+ROCplot &lt;- ggplot(fit5) + geom_roc(aes(d = Conditional_Weather, m = prob), n.cuts = 0)
+ROCplot</code></pre>
+<p><img src="/project/project2_files/figure-html/unnamed-chunk-11-2.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>calc_auc(ROCplot)#AUC</code></pre>
+<pre><code>##   PANEL group       AUC
+## 1     1    -1 0.8342857</code></pre>
+<p><em>The intercept predicts the conditional_weather for the spring season and desert location. The coefficient estimates that are negative (Summer, Fall, Winter, All Seasons, Lake Location, Ocean Location, and River Location) are all negative, so they predict conditional weather to a weaker extent than the spring season and desert location. For the Mines Location, the coefficient estimate is positive, so it predicts the conditional_weather slightly better than the spring season and desert location. The accuracy is 0.844, the sensitivity (TPR) is 0.5, the specificity (TNR) is 0.943, the precision (PPV) is 0.714, and the AUC is 0.834. This high auc indicates that Season and Location are good predictors of Conditional Weather. In other words, the season and location that a fish can be caught in are good predictors of whether there is a specific weather condition necessary for catching a fish. From the ROC curve, the auc was 0.834, which, although is lower, is still a good predictor, so the true predictor is still higher for predicted probability than a false one.</em></p>
+<ul>
+<li><strong>6. (25 pts)</strong> Perform a logistic regression predicting the same binary response variable from <em>ALL</em> of the rest of your variables (the more, the better!)</li>
+</ul>
+<pre class="r"><code>fish &lt;- fish %&gt;% mutate(&quot;logit&quot; = NULL)
+#Coefficient Estimates
+fit6 &lt;- glm(Conditional_Weather ~ Price+Hours+Darting_Intensity+Darting_Duration+Difficulty, data = fish, family = &quot;binomial&quot;)
+summary(fit6)</code></pre>
+<pre><code>##
+## Call:
+## glm(formula = Conditional_Weather ~ Price + Hours +
+Darting_Intensity +
+## Darting_Duration + Difficulty, family = &quot;binomial&quot;, data
+= fish)
+##
+## Deviance Residuals:
+## Min 1Q Median 3Q Max
+## -1.2114 -0.7020 -0.4436 -0.1246 2.2549
+##
+## Coefficients:
+## Estimate Std. Error z value Pr(&gt;|z|)
+## (Intercept) 3.692658 2.731724 1.352 0.1764
+## Price 0.002841 0.001686 1.685 0.0921 .
+## Hours -0.258722 0.126093 -2.052 0.0402 *
+## Darting_Intensity -0.048383 0.087731 -0.551 0.5813
+## Darting_Duration 0.059761 0.037192 1.607 0.1081
+## Difficulty -0.065820 0.041257 -1.595 0.1106
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1
+##
+## (Dispersion parameter for binomial family taken to be 1)
+##
+## Null deviance: 47.674 on 44 degrees of freedom
+## Residual deviance: 34.725 on 39 degrees of freedom
+## AIC: 46.725
+##
+## Number of Fisher Scoring iterations: 8</code></pre>
+<pre class="r"><code>#In-sample Classification Diagnostics
+probs &lt;- predict(fit6, type = &quot;response&quot;)
+
+class_diag &lt;- function(probs,truth){
+#CONFUSION MATRIX: CALCULATE ACCURACY, TPR, TNR, PPV
+  
+if(is.character(truth)==TRUE) truth&lt;-as.factor(truth)
+if(is.numeric(truth)==FALSE &amp; is.logical(truth)==FALSE) truth&lt;-as.numeric(truth)-1
+
+tab&lt;-table(factor(probs&gt;.5,levels=c(&quot;FALSE&quot;,&quot;TRUE&quot;)),factor(truth, levels=c(0,1)))
+acc=sum(diag(tab))/sum(tab)
+sens=tab[2,2]/colSums(tab)[2]
+spec=tab[1,1]/colSums(tab)[1]
+ppv=tab[2,2]/rowSums(tab)[2]
+f1=2*(sens*ppv)/(sens+ppv)
+
+#CALCULATE EXACT AUC
+ord&lt;-order(probs, decreasing=TRUE)
+probs &lt;- probs[ord]; truth &lt;- truth[ord]
+
+TPR=cumsum(truth)/max(1,sum(truth)) 
+FPR=cumsum(!truth)/max(1,sum(!truth))
+
+dup&lt;-c(probs[-1]&gt;=probs[-length(probs)], FALSE)
+TPR&lt;-c(0,TPR[!dup],1); FPR&lt;-c(0,FPR[!dup],1)
+n &lt;- length(TPR)
+auc&lt;- sum( ((TPR[-1]+TPR[-n])/2) * (FPR[-1]-FPR[-n]) )
+
+data.frame(acc,sens,spec,ppv,f1,auc)
+}
+class_diag(probs,fish$Conditional_Weather)</code></pre>
+<pre><code>##         acc sens      spec ppv        f1       auc
+## 1 0.8444444  0.4 0.9714286 0.8 0.5333333 0.7828571</code></pre>
+<pre class="r"><code>#10-fold sub-sampling and out-of-sample classification diagnostics
+set.seed(123)
+k=10
+
+data1&lt;-fish[sample(nrow(fish)),] #put dataset in random order
+folds&lt;-cut(seq(1:nrow(fish)),breaks=k,labels=F) #create folds
+
+diags&lt;-NULL
+for(i in 1:k){          # FOR EACH OF 10 FOLDS
+  train&lt;-data1[folds!=i,] # CREATE TRAINING SET
+  test&lt;-data1[folds==i,]  # CREATE TESTING SET
+
+  truth&lt;-test$Conditional_Weather
+
+  fit7 &lt;- glm(Conditional_Weather ~ Price+Hours+Darting_Intensity+Darting_Duration+Difficulty, data=train, family=&quot;binomial&quot;)
+  probs&lt;- predict(fit7 , type=&quot;response&quot;, newdata=test)
+
+  diags&lt;-rbind(diags,class_diag(probs,truth)) #CV DIAGNOSTICS FOR EACH FOLD
+}
+
+summarize_all(diags,mean) #AVERAGE THE DIAGNOSTICS ACROSS THE 10 FOLDS</code></pre>
+<pre><code>##     acc sens      spec ppv  f1       auc
+## 1 0.765  NaN 0.9166667 NaN NaN 0.4083333</code></pre>
+<p><em>The in-sample classification diagnostics had accuracy as 0.844, the sensitivity (TPR) as 0.4, the specificity (TNR) as 0.971, the precision (PPV) as 0.8, and the AUC as 0.783. After doing the 10-fold sub-sampling, my out-of-sample classification diagnostics had accuracy as 0.765, did not have sensitivity diagnostic, had a specificity of 0.917, did not have a precision diagnostic, and had an auc of 0.408.</em></p>
+<pre class="r"><code>set.seed(123)
+
+fish_resp &lt;- as.matrix(fish$Conditional_Weather)
+fish_preds &lt;- model.matrix(Conditional_Weather ~ -1 + ., data = fish)
+cv.lasso &lt;- cv.glmnet(x = fish_preds, y = fish_resp, 
+    family = &quot;binomial&quot;)
+lasso_fit &lt;- glmnet(x = fish_preds[, -1], y = fish_resp[, 1], 
+    family = &quot;binomial&quot;, lambda = cv.lasso$lambda.1se)
+coef(lasso_fit)</code></pre>
+<pre><code>## 64 x 1 sparse Matrix of class &quot;dgCMatrix&quot;
+##                             s0
+## (Intercept)          -1.252763
+## FishAnchovy           0.000000
+## FishAngler            .       
+## FishBream             .       
+## FishBullhead          .       
+## FishCarp              .       
+## FishCatfish           .       
+## FishChub              .       
+## FishCrimsonfish       .       
+## FishDorado            .       
+## FishEel               .       
+## FishGhostfish         .       
+## FishGlacierfish       .       
+## FishHalibut           .       
+## FishHerring           .       
+## FishIce Pip           .       
+## FishLargemouth Bass   .       
+## FishLava Eel          .       
+## FishLegend            .       
+## FishLingcod           .       
+## FishMutant Carp       .       
+## FishOctopus           .       
+## FishPerch             .       
+## FishPike              .       
+## FishPufferfish        .       
+## FishRainbow Trout     .       
+## FishRed Mullet        .       
+## FishRed Snapper       .       
+## FishSalmon            .       
+## FishSandfish          .       
+## FishSardine           .       
+## FishScorpion Carp     .       
+## FishSea Cucumer       .       
+## FishShad              .       
+## FishSmallmouth Bass   .       
+## FishSquid             .       
+## FishStonefish         .       
+## FishSturgeon          .       
+## FishSunfish           .       
+## FishSuper Cucumber    .       
+## FishTiger Trout       .       
+## FishTilapia           .       
+## FishTuna              .       
+## FishWalleye           .       
+## FishWoodskip          .       
+## Price                 .       
+## Season2-Summer        .       
+## Season3-Fall          .       
+## Season4-Winter        .       
+## SeasonAll             .       
+## Hours                 .       
+## LocationLake          .       
+## LocationMines         .       
+## LocationOcean         .       
+## LocationRiver         .       
+## Darting_Stylefloater  .       
+## Darting_Stylemixed    .       
+## Darting_Stylesinker   .       
+## Darting_Stylesmooth   .       
+## Darting_Intensity     .       
+## Darting_Duration      .       
+## Difficulty            .       
+## Difficulty_c          .       
+## Hours_c               .</code></pre>
+<pre class="r"><code>set.seed(123)
+k=10
+data &lt;- fish %&gt;% sample_frac  #put rows of dataset in random order
+folds &lt;- ntile(1:nrow(data), n = 10)  #create fold labels
+diags &lt;- NULL
+for (i in 1:k) {
+    train &lt;- data[folds != i, ]  #create training set (all but fold i)
+    test &lt;- data[folds == i, ]  #create test set (just fold i)
+    truth &lt;- test$Conditional_Weather  #save truth labels from fold i
+    fit8 &lt;- glm(Conditional_Weather ~ Darting_Duration, family = &quot;binomial&quot;, data = train)
+    probs &lt;- predict(fit8, newdata = test, type = &quot;response&quot;)
+    diags &lt;- rbind(diags, class_diag(probs, truth))
+}
+diags %&gt;% summarize_all(mean)</code></pre>
+<pre><code>##    acc sens spec ppv  f1       auc
+## 1 0.78  NaN    1 NaN NaN 0.4333333</code></pre>
+<p><em>The auc after accounting for the lasso variables increased to 0.433, so darting duration predicts whether there needs to be a specific weather condition to catch a fish better than all of the variables combined (which had a lower auc of 0.408). However, the auc still indicates this is a very poor predictor.</em> ...</p>
+<p>++</p>
+</div>

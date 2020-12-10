@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="author" content="Priyanka Kar" />
+    
+    <link rel="shortcut icon" type="image/x-icon" href="../../img/favicon.ico">
+    <title>Project 1: Exploratory Data Analysis</title>
+    <meta name="generator" content="Hugo 0.79.0" />
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <link rel="stylesheet" type="text/css" href="../../css/main.css" />
+    <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" />
+    <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,400,200bold,400old" />
+    
+    <!--[if lt IE 9]>
+			<script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+			<script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+		<![endif]-->
+
+    
+  </head>
+
+  <body>
+    <div id="wrap">
+      
+      <nav class="navbar navbar-default">
+  <div class="container">
+    <div class="navbar-header">
+      <a class="navbar-brand" href="../../"><i class="fa fa-home"></i></a>
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <div class="navbar-collapse collapse" id="navbar">
+      <ul class="nav navbar-nav navbar-right">
+      
+        
+        <li><a href="../../post/">BLOG</a></li>
+        
+        <li><a href="../../projects/">PROJECTS</a></li>
+        
+        <li><a href="../../resume/">RESUME</a></li>
+        
+      
+      </ul>
+    </div>
+  </div>
+</nav>
+
+      <div class="container">
+        <div class="blog-post">
+          <h3>
+            <strong><a href="../../project/project1/">Project 1: Exploratory Data Analysis</a></strong>
+          </h3>
+        </div>
+ 
+<div class="blog-title">
+          <h4>
+         January 1, 0001 
+            &nbsp;&nbsp;
+            
+          </h4>
+        </div>
+
+        <div class="panel panel-default">
+          <div class="panel-body">
+            <div class="blogpost">
+              
+<script src="../../rmarkdown-libs/kePrint/kePrint.js"></script>
+<link href="../../rmarkdown-libs/lightable/lightable.css" rel="stylesheet" />
+
+
+<div id="data-wrangling-and-data-exploration" class="section level2">
+<h2>Data Wrangling and Data Exploration</h2>
+<pre class="r"><code>library(readxl)
+library(readr)
+library(tidyr)
+library(tidyverse)
+library(cluster)
+library(GGally)
+library(kableExtra)
+recipeprofits &lt;- read_xlsx(&quot;recipeprofits.xlsx&quot;)
+recipestat &lt;- read_xlsx(&quot;recipestat.xlsx&quot;)
+glimpse(recipeprofits)</code></pre>
+<pre><code>## Rows: 71
+## Columns: 16
+## $ Item           &lt;chr&gt; &quot;Algae Soup&quot;, &quot;Artichoke Dip&quot;, &quot;Autumn&#39;s Bounty&quot;, &quot;Bak…
+## $ Q1             &lt;dbl&gt; 4, 1, 1, 1, 2, 2, 1, 1, 1, 4, 1, 1, 1, 1, 1, 1, 1, 1, …
+## $ `Ingredient 1` &lt;chr&gt; &quot;Green Algae&quot;, &quot;Artichoke&quot;, &quot;Yam&quot;, &quot;Sunfish&quot;, &quot;Green B…
+## $ Q2             &lt;dbl&gt; NA, 1, 1, 1, NA, 1, 1, NA, 1, NA, 1, 1, 1, 1, 1, 1, 1,…
+## $ `Ingredient 2` &lt;chr&gt; &quot;Green Algae&quot;, &quot;Milk&quot;, &quot;Pumpkin&quot;, &quot;Bream&quot;, &quot;Green Bean…
+## $ Q3             &lt;dbl&gt; NA, NA, NA, 1, NA, 1, 1, NA, 1, NA, NA, 1, NA, 1, 1, 1…
+## $ `Ingredient 3` &lt;chr&gt; &quot;Green Algae&quot;, NA, NA, &quot;Wheat Flour&quot;, NA, &quot;Wheat Flour…
+## $ Q4             &lt;dbl&gt; NA, NA, NA, NA, NA, NA, 1, NA, NA, NA, NA, NA, NA, NA,…
+## $ `Ingredient 4` &lt;chr&gt; &quot;Green Algae&quot;, NA, NA, NA, NA, &quot;Blackberry&quot;, &quot;Egg&quot;, NA…
+## $ C1             &lt;dbl&gt; 15, 160, 160, 30, 40, 20, 50, 100, 60, 30, 175, 100, 5…
+## $ C2             &lt;dbl&gt; 15, 85, 320, 45, 40, 100, 100, 0, 200, 30, 100, 100, 8…
+## $ C3             &lt;dbl&gt; 15, 0, 0, 100, 0, 100, 100, 0, 60, 30, 0, 25, 0, 100, …
+## $ C4             &lt;dbl&gt; 15, 0, 0, 0, 0, 20, 25, 0, 0, 30, 0, 0, 0, 0, 80, 0, 2…
+## $ Cost           &lt;dbl&gt; 60, 245, 480, 175, 80, 240, 275, 100, 320, 120, 275, 2…
+## $ Sell           &lt;dbl&gt; 100, 210, 350, 100, 100, 260, 180, 60, 210, 150, 300, …
+## $ Profit         &lt;dbl&gt; 40, -35, -130, -75, 20, 20, -95, -40, -110, 30, 25, -2…</code></pre>
+<pre class="r"><code>glimpse(recipestat)</code></pre>
+<pre><code>## Rows: 71
+## Columns: 10
+## $ Name           &lt;chr&gt; &quot;Algae Soup&quot;, &quot;Artichoke Dip&quot;, &quot;Autumn&#39;s Bounty&quot;, &quot;Bak…
+## $ `Sell Price`   &lt;dbl&gt; 100, 210, 350, 100, 100, 260, 150, 60, 210, 150, 300, …
+## $ Ingredient     &lt;chr&gt; &quot;Green Algae (4)&quot;, &quot;Artichoke&quot;, &quot;Yam&quot;, &quot;Sunfish&quot;, &quot;Gre…
+## $ `Ingredient 2` &lt;chr&gt; &quot;-&quot;, &quot;Milk&quot;, &quot;Pumpkin&quot;, &quot;Bream&quot;, &quot;-&quot;, &quot;Sugar&quot;, &quot;Wheat …
+## $ `Ingredient 3` &lt;chr&gt; &quot;-&quot;, &quot;-&quot;, &quot;-&quot;, &quot;Wheat Flour&quot;, &quot;-&quot;, &quot;Wheat Flour&quot;, &quot;Sug…
+## $ `Ingredient 4` &lt;chr&gt; &quot;-&quot;, &quot;-&quot;, &quot;-&quot;, &quot;-&quot;, &quot;-&quot;, &quot;-&quot;, &quot;Egg&quot;, &quot;-&quot;, &quot;-&quot;, &quot;-&quot;, &quot;-…
+## $ Energy         &lt;dbl&gt; 75, 100, 220, 75, 125, 175, 125, 50, 113, 90, 138, 150…
+## $ Health         &lt;dbl&gt; 33, 45, 99, 33, 56, 78, 56, 22, 50, 40, 62, 67, 101, 9…
+## $ `Stat Bonus`   &lt;chr&gt; NA, NA, &quot;Foraging+2, Defense+2&quot;, NA, &quot;Max Energy+2&quot;, N…
+## $ Source         &lt;chr&gt; &quot;Clint - Mail&quot;, &quot;Cooking Channel&quot;, &quot;Demetrius - Mail&quot;,…</code></pre>
+</div>
+<div id="introduction" class="section level2">
+<h2>1. Introduction</h2>
+<p><em>This summer, I've been obsessively playing a farming simulation game called Stardew Valley. I've gotten into the spirit of maximizing the benefit and profit I get from the items that I cultivate in the game! One of the features of the game is using ingredient items to cook recipes, which when consumed, increase my character's energy and health. I wondered which of the 71 recipes would be best for receiving these benefits while also not costing too much of the monetary value of the individual ingredients needed to make them. I also wanted to know if it would be better to sell a recipe or consume it. This is interesting to me because I will actually use this analysis to maximize my profit and benefit in the game! One dataset, recipestat, lists the energy and health amount given by each recipe when consumed, as well as how to obtain the recipe and stat bonuses it gives. The other dataset, recipeprofits, breaks down the costs of each ingredient in a recipe, sell price if I were to sell the cooked recipe, and if there is any profit made by selling the recipe instead of selling the raw ingredients alone. I acquired them through the Stardew subreddit, where lots of dedicated fans of the game upload spreadsheets as player guides associated with aspects of the game. I expect to see that the recipes that would give the most monetary profit would also have the best numerical health and energy values, since the game should balance profit with benefit when consumed.</em></p>
+</div>
+<div id="joiningmerging" class="section level2">
+<h2>2. Joining/Merging</h2>
+<pre class="r"><code># Cleaning Up the Datasets and Joining Them
+recipeprofits &lt;- recipeprofits %&gt;% mutate(Q1 = NULL, Q2 = NULL, 
+    Q3 = NULL, Q4 = NULL)
+recipes &lt;- inner_join(recipeprofits, recipestat, by = c(Item = &quot;Name&quot;))
+recipes &lt;- recipes %&gt;% mutate(Ingredient = NULL, `Ingredient 2.y` = NULL, 
+    `Ingredient 3.y` = NULL, `Ingredient 4.y` = NULL, `Sell Price` = NULL) %&gt;% 
+    rename(I1 = &quot;Ingredient 1&quot;, I2 = &quot;Ingredient 2.x&quot;, I3 = &quot;Ingredient 3.x&quot;, 
+        I4 = &quot;Ingredient 4.x&quot;)</code></pre>
+<p><em>I joined the datasets by the recipe IDs. I chose an inner_join because I only wanted to examine the recipes where there was both data for the monetary profit of the recipe, and data for the energy and health benefit of the recipe. I ended up with 71 observations, so no IDs were dropped by the join. This showed me that there was cooresponding data for every recipe ID between the two datasets. I also removed columns that I did not want in my datasets, and renamed some others.</em></p>
+</div>
+<div id="wrangling" class="section level2">
+<h2>3. Wrangling</h2>
+<ul>
+<li>Summarize/discuss all results in no more than two paragraphs (4 pts)</li>
+</ul>
+<pre class="r"><code># Adding Function Variables
+recipes &lt;- recipes %&gt;% mutate(Profit.Energy.ratio = Profit/Energy, 
+    Profit.Health.ratio = Profit/Health)
+
+# Summary Statistics- Overall Data
+summarystat &lt;- recipes %&gt;% select(Cost, Sell, Profit, Energy, 
+    Health, Profit.Energy.ratio, Profit.Health.ratio) %&gt;% summarize_if(is.numeric, 
+    list(mean = mean, sd = sd, median = median, min = min, max = max), 
+    na.rm = T)
+summarystat &lt;- summarystat %&gt;% pivot_longer(cols = Cost_mean:Profit.Health.ratio_max) %&gt;% 
+    separate(name, into = c(&quot;variable&quot;, &quot;stat&quot;), sep = &quot;_&quot;)
+summarystat %&gt;% pivot_wider(names_from = &quot;stat&quot;, values_from = &quot;value&quot;) %&gt;% 
+    arrange(desc(sd)) %&gt;% kbl() %&gt;% kable_paper(&quot;hover&quot;, full_width = F)</code></pre>
+<table class=" lightable-paper lightable-hover" style="font-family: &quot;Arial Narrow&quot;, arial, helvetica, sans-serif; width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+variable
+</th>
+<th style="text-align:right;">
+mean
+</th>
+<th style="text-align:right;">
+sd
+</th>
+<th style="text-align:right;">
+median
+</th>
+<th style="text-align:right;">
+min
+</th>
+<th style="text-align:right;">
+max
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Cost
+</td>
+<td style="text-align:right;">
+256.5492958
+</td>
+<td style="text-align:right;">
+133.2709151
+</td>
+<td style="text-align:right;">
+250.0000000
+</td>
+<td style="text-align:right;">
+25.000000
+</td>
+<td style="text-align:right;">
+605.000000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Sell
+</td>
+<td style="text-align:right;">
+213.7323944
+</td>
+<td style="text-align:right;">
+104.8663037
+</td>
+<td style="text-align:right;">
+200.0000000
+</td>
+<td style="text-align:right;">
+35.000000
+</td>
+<td style="text-align:right;">
+500.000000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Profit
+</td>
+<td style="text-align:right;">
+-42.8169014
+</td>
+<td style="text-align:right;">
+84.5861032
+</td>
+<td style="text-align:right;">
+-30.0000000
+</td>
+<td style="text-align:right;">
+-250.000000
+</td>
+<td style="text-align:right;">
+120.000000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Energy
+</td>
+<td style="text-align:right;">
+145.5633803
+</td>
+<td style="text-align:right;">
+56.2643588
+</td>
+<td style="text-align:right;">
+125.0000000
+</td>
+<td style="text-align:right;">
+50.000000
+</td>
+<td style="text-align:right;">
+263.000000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Health
+</td>
+<td style="text-align:right;">
+65.1408451
+</td>
+<td style="text-align:right;">
+25.3790103
+</td>
+<td style="text-align:right;">
+56.0000000
+</td>
+<td style="text-align:right;">
+22.000000
+</td>
+<td style="text-align:right;">
+118.000000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Profit.Health.ratio
+</td>
+<td style="text-align:right;">
+-0.8102497
+</td>
+<td style="text-align:right;">
+1.7184668
+</td>
+<td style="text-align:right;">
+-0.4444444
+</td>
+<td style="text-align:right;">
+-6.388889
+</td>
+<td style="text-align:right;">
+1.785714
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Profit.Energy.ratio
+</td>
+<td style="text-align:right;">
+-0.3612581
+</td>
+<td style="text-align:right;">
+0.7654644
+</td>
+<td style="text-align:right;">
+-0.2000000
+</td>
+<td style="text-align:right;">
+-2.875000
+</td>
+<td style="text-align:right;">
+0.800000
+</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code># Summary Statistics- Creating an `If Sold` Categorical
+# Variable
+recipes &lt;- recipes %&gt;% mutate(cg = case_when(Profit &gt; 0 ~ &quot;Money Made&quot;, 
+    Profit == 0 ~ &quot;Zero Money&quot;, Profit &lt; 0 ~ &quot;Money Lost&quot;)) %&gt;% 
+    rename(`If Sold` = &quot;cg&quot;)
+recipes %&gt;% mutate(Cost = NULL, Sell = NULL) %&gt;% group_by(`If Sold`) %&gt;% 
+    mutate(C1 = NULL, C2 = NULL, C3 = NULL, C4 = NULL) %&gt;% summarize_if(is.numeric, 
+    list(mean = mean, sd = sd, median = median, min = min, max = max), 
+    na.rm = T) %&gt;% pivot_longer(cols = Profit_mean:Profit.Health.ratio_max) %&gt;% 
+    separate(name, into = c(&quot;variable&quot;, &quot;stat&quot;), sep = &quot;_&quot;) %&gt;% 
+    pivot_wider(names_from = &quot;stat&quot;, values_from = &quot;value&quot;) %&gt;% 
+    filter(`If Sold` == &quot;Money Made&quot; | `If Sold` == &quot;Money Lost&quot;) %&gt;% 
+    kbl() %&gt;% kable_paper(&quot;hover&quot;, full_width = F)</code></pre>
+<table class=" lightable-paper lightable-hover" style="font-family: &quot;Arial Narrow&quot;, arial, helvetica, sans-serif; width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+If Sold
+</th>
+<th style="text-align:left;">
+variable
+</th>
+<th style="text-align:right;">
+mean
+</th>
+<th style="text-align:right;">
+sd
+</th>
+<th style="text-align:right;">
+median
+</th>
+<th style="text-align:right;">
+min
+</th>
+<th style="text-align:right;">
+max
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Money Lost
+</td>
+<td style="text-align:left;">
+Profit
+</td>
+<td style="text-align:right;">
+-94.2857143
+</td>
+<td style="text-align:right;">
+70.4304832
+</td>
+<td style="text-align:right;">
+-80.0000000
+</td>
+<td style="text-align:right;">
+-250.0000000
+</td>
+<td style="text-align:right;">
+-5.0000000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Money Lost
+</td>
+<td style="text-align:left;">
+Energy
+</td>
+<td style="text-align:right;">
+143.6666667
+</td>
+<td style="text-align:right;">
+53.1214286
+</td>
+<td style="text-align:right;">
+130.0000000
+</td>
+<td style="text-align:right;">
+50.0000000
+</td>
+<td style="text-align:right;">
+225.0000000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Money Lost
+</td>
+<td style="text-align:left;">
+Health
+</td>
+<td style="text-align:right;">
+64.2857143
+</td>
+<td style="text-align:right;">
+23.9758880
+</td>
+<td style="text-align:right;">
+58.0000000
+</td>
+<td style="text-align:right;">
+22.0000000
+</td>
+<td style="text-align:right;">
+101.0000000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Money Lost
+</td>
+<td style="text-align:left;">
+Profit.Energy.ratio
+</td>
+<td style="text-align:right;">
+-0.7846709
+</td>
+<td style="text-align:right;">
+0.7203659
+</td>
+<td style="text-align:right;">
+-0.5811688
+</td>
+<td style="text-align:right;">
+-2.8750000
+</td>
+<td style="text-align:right;">
+-0.0294118
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Money Lost
+</td>
+<td style="text-align:left;">
+Profit.Health.ratio
+</td>
+<td style="text-align:right;">
+-1.7601391
+</td>
+<td style="text-align:right;">
+1.6180141
+</td>
+<td style="text-align:right;">
+-1.2975913
+</td>
+<td style="text-align:right;">
+-6.3888889
+</td>
+<td style="text-align:right;">
+-0.0657895
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Money Made
+</td>
+<td style="text-align:left;">
+Profit
+</td>
+<td style="text-align:right;">
+40.0000000
+</td>
+<td style="text-align:right;">
+28.1634838
+</td>
+<td style="text-align:right;">
+30.0000000
+</td>
+<td style="text-align:right;">
+5.0000000
+</td>
+<td style="text-align:right;">
+120.0000000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Money Made
+</td>
+<td style="text-align:left;">
+Energy
+</td>
+<td style="text-align:right;">
+134.8260870
+</td>
+<td style="text-align:right;">
+58.9943388
+</td>
+<td style="text-align:right;">
+125.0000000
+</td>
+<td style="text-align:right;">
+50.0000000
+</td>
+<td style="text-align:right;">
+263.0000000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Money Made
+</td>
+<td style="text-align:left;">
+Health
+</td>
+<td style="text-align:right;">
+60.3043478
+</td>
+<td style="text-align:right;">
+26.5919242
+</td>
+<td style="text-align:right;">
+56.0000000
+</td>
+<td style="text-align:right;">
+22.0000000
+</td>
+<td style="text-align:right;">
+118.0000000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Money Made
+</td>
+<td style="text-align:left;">
+Profit.Energy.ratio
+</td>
+<td style="text-align:right;">
+0.3176891
+</td>
+<td style="text-align:right;">
+0.1935860
+</td>
+<td style="text-align:right;">
+0.2666667
+</td>
+<td style="text-align:right;">
+0.0400000
+</td>
+<td style="text-align:right;">
+0.8000000
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Money Made
+</td>
+<td style="text-align:left;">
+Profit.Health.ratio
+</td>
+<td style="text-align:right;">
+0.7129613
+</td>
+<td style="text-align:right;">
+0.4360487
+</td>
+<td style="text-align:right;">
+0.5970149
+</td>
+<td style="text-align:right;">
+0.0892857
+</td>
+<td style="text-align:right;">
+1.7857143
+</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code># Correlation Matrix
+recipes %&gt;% mutate(C1 = NULL, C2 = NULL, C3 = NULL, C4 = NULL) %&gt;% 
+    select_if(is.numeric) %&gt;% cor %&gt;% as.data.frame %&gt;% rownames_to_column %&gt;% 
+    kbl() %&gt;% kable_paper(&quot;hover&quot;, full_width = F)</code></pre>
+<table class=" lightable-paper lightable-hover" style="font-family: &quot;Arial Narrow&quot;, arial, helvetica, sans-serif; width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+rowname
+</th>
+<th style="text-align:right;">
+Cost
+</th>
+<th style="text-align:right;">
+Sell
+</th>
+<th style="text-align:right;">
+Profit
+</th>
+<th style="text-align:right;">
+Energy
+</th>
+<th style="text-align:right;">
+Health
+</th>
+<th style="text-align:right;">
+Profit.Energy.ratio
+</th>
+<th style="text-align:right;">
+Profit.Health.ratio
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Cost
+</td>
+<td style="text-align:right;">
+1.0000000
+</td>
+<td style="text-align:right;">
+0.7728908
+</td>
+<td style="text-align:right;">
+-0.6173675
+</td>
+<td style="text-align:right;">
+0.5201737
+</td>
+<td style="text-align:right;">
+0.5195750
+</td>
+<td style="text-align:right;">
+-0.4735401
+</td>
+<td style="text-align:right;">
+-0.4722213
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Sell
+</td>
+<td style="text-align:right;">
+0.7728908
+</td>
+<td style="text-align:right;">
+1.0000000
+</td>
+<td style="text-align:right;">
+0.0220182
+</td>
+<td style="text-align:right;">
+0.7187019
+</td>
+<td style="text-align:right;">
+0.7185398
+</td>
+<td style="text-align:right;">
+0.1356956
+</td>
+<td style="text-align:right;">
+0.1365602
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Profit
+</td>
+<td style="text-align:right;">
+-0.6173675
+</td>
+<td style="text-align:right;">
+0.0220182
+</td>
+<td style="text-align:right;">
+1.0000000
+</td>
+<td style="text-align:right;">
+0.0714489
+</td>
+<td style="text-align:right;">
+0.0721913
+</td>
+<td style="text-align:right;">
+0.9143230
+</td>
+<td style="text-align:right;">
+0.9133171
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Energy
+</td>
+<td style="text-align:right;">
+0.5201737
+</td>
+<td style="text-align:right;">
+0.7187019
+</td>
+<td style="text-align:right;">
+0.0714489
+</td>
+<td style="text-align:right;">
+1.0000000
+</td>
+<td style="text-align:right;">
+0.9999400
+</td>
+<td style="text-align:right;">
+0.2300671
+</td>
+<td style="text-align:right;">
+0.2310723
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Health
+</td>
+<td style="text-align:right;">
+0.5195750
+</td>
+<td style="text-align:right;">
+0.7185398
+</td>
+<td style="text-align:right;">
+0.0721913
+</td>
+<td style="text-align:right;">
+0.9999400
+</td>
+<td style="text-align:right;">
+1.0000000
+</td>
+<td style="text-align:right;">
+0.2306740
+</td>
+<td style="text-align:right;">
+0.2317151
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Profit.Energy.ratio
+</td>
+<td style="text-align:right;">
+-0.4735401
+</td>
+<td style="text-align:right;">
+0.1356956
+</td>
+<td style="text-align:right;">
+0.9143230
+</td>
+<td style="text-align:right;">
+0.2300671
+</td>
+<td style="text-align:right;">
+0.2306740
+</td>
+<td style="text-align:right;">
+1.0000000
+</td>
+<td style="text-align:right;">
+0.9999647
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Profit.Health.ratio
+</td>
+<td style="text-align:right;">
+-0.4722213
+</td>
+<td style="text-align:right;">
+0.1365602
+</td>
+<td style="text-align:right;">
+0.9133171
+</td>
+<td style="text-align:right;">
+0.2310723
+</td>
+<td style="text-align:right;">
+0.2317151
+</td>
+<td style="text-align:right;">
+0.9999647
+</td>
+<td style="text-align:right;">
+1.0000000
+</td>
+</tr>
+</tbody>
+</table>
+<p><em>Firstly, I created two new function variables comparing profit in selling a recipe to the health or energy output if the recipe is consumed. In my first table, I wanted to lay out the general statistics (mean, standard deviation, median, min, and max) of my data, to understand how much variation there was between recipes for their Cost, Sell price, Profit, Energy, Health, and the two new ratio function variables. I found that recipes on average have -42.8 profit in gold, so overall, recipes in Stardew Valley are not profitable to sell. However, the minimum and maximum profit were extremely different and there was a high standard deviation, so recipes do vary a lot in their profitability. I also found that Energy has a lot higher standard deviation than Health does, which is interesting to note for choosing if its better to prioritize health or energy output when choosing from a selection of recipes.</em></p>
+<p><em>In my second table, I compared the summary statistics of mean, standard deviation, median, min, and max of Profit, Energy, Health, and their ratio variables Profit.Energy.ratio and Profit.Health.ratio by if they would make money when sold. I made a new categorical variable to partition the recipes this way, separating the stats into money made and money lost. This table allows me to separate recipes to observe the average values by profitability more clearly. I found that where there is money to be made, the profit is only 40 gold on average, which is not a very large amount, but profit when money is lost is -94.3, so recipes generally are more detrimental money-wise when profit is lost than beneficial when money can be made.</em></p>
+<p><em>Lastly, I created a correlation matrix to give me more statistical understanding of the relationships between my variables. These show that there is a correlation value of 1 between Energy and Health, so they are very interchangeable in the patterns of their values (i.e. recipes that have high energy have a high health associated), Cost and Sell price have a high correlation as expected, and that interestingly, profit has a low correlation with both energy and health.</em></p>
+</div>
+<div id="visualizing" class="section level2">
+<h2>4. Visualizing</h2>
+<pre class="r"><code># Heat Map
+recipes %&gt;% mutate(C1 = NULL, C2 = NULL, C3 = NULL, C4 = NULL) %&gt;% 
+    select_if(is.numeric) %&gt;% cor %&gt;% as.data.frame %&gt;% rownames_to_column %&gt;% 
+    pivot_longer(-1) %&gt;% ggplot(aes(rowname, name, fill = value)) + 
+    geom_tile() + geom_text(aes(label = round(value, 2))) + xlab(&quot;&quot;) + 
+    ylab(&quot;&quot;) + coord_fixed() + theme(axis.text.x = element_text(angle = 90)) + 
+    scale_fill_gradient2(low = &quot;white&quot;, mid = &quot;pink&quot;, high = &quot;orange&quot;)</code></pre>
+<p><img src="../../project/project1_files/figure-html/unnamed-chunk-4-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Bar Graph
+recipes %&gt;% ggplot(aes(x = Item, y = Health, color = `If Sold`)) + 
+    geom_bar(stat = &quot;summary&quot;) + theme(axis.text.x = element_text(angle = 65, 
+    hjust = 1, size = 5, vjust = 1)) + ggtitle(&quot;Profitable and Non-Profitable Recipes by Health Output&quot;) + 
+    ylab(&quot;Health Output (HP)&quot;) + xlab(&quot;Recipe Name&quot;) + theme(legend.title = element_text(size = 10), 
+    legend.text = element_text(size = 9)) + scale_y_continuous(breaks = seq(0, 
+    200, 25)) + scale_colour_brewer(palette = &quot;Set1&quot;)</code></pre>
+<p><img src="../../project/project1_files/figure-html/unnamed-chunk-5-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p><em>One of the main goals of my project were to partition the different recipes in the game by if they would be profitable to sell after taking into account the cost of the ingredients required to make them. However, I also wanted to know if these profitable recipes would instead be best used for consumption for health or energy. From my heat map, I already could see that there was a low correlation between Profit and health or energy, so I expected a lot of surprising results and variation. For this bar graph, I chose to focus on Health specifically, since I often consume recipes based on the health it gives me. I made a bar graph representing the categorical variable Recipe, the numerical variable Health and the categorical variable If Sold (which was based on a function of if profit would be made from the difference between the Cost and Sell variables). I found that most of the recipes are not profitable, with only a select few making no profit, and a small amount making profit. In addition, there is a not a pattern where the recipes with the highest health output are the best ones to sell. Instead, health output varies a lot, even within each category of the If Sold variable. I learned valuable information about which recipes are best to sell and which are best to consume for Health. Namely, Pumpkin's Pie, Autumn's Bounty, and Miner's Treat are great for Health, since they are not profitable to be sold, and Tortilla, Sashimi, Pale Broth, and Fried Egg have a lot of profitability while only giving a minor health output. I also learned that Fruit Salad, while giving a large health output, also is profitable, which is important to note for my gameplay.</em></p>
+<pre class="r"><code># Faceted Line Graph
+recipes %&gt;% ggplot(aes(x = Cost, y = Energy, color = `If Sold`)) + 
+    geom_line(stat = &quot;summary&quot;) + facet_wrap(~`If Sold`) + ggtitle(&quot;Energy Output of Recipes vs. Sell Price, Faceted by Profitability&quot;) + 
+    ylab(&quot;Energy Output (HP)&quot;) + xlab(&quot;Sell Price (Gold)&quot;) + 
+    scale_x_continuous(breaks = seq(0, 600, 100)) + theme(legend.title = element_text(size = 14), 
+    legend.text = element_text(size = 11)) + scale_color_brewer(palette = &quot;Dark2&quot;)</code></pre>
+<p><img src="../../project/project1_files/figure-html/unnamed-chunk-6-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p><em>Since I saw so much surprising variation in actual profit against health output, I wanted to see if the listed sell price of these recipes are deceptively similar to health and energy output. This was especially my goal after seeing a 0.72 correlation between Sell and Energy or Health. Therefore, the goal of these faceted line graphs was for my further interest in understanding the dynamic between sell price of recipes and the benefit of consuming them. I chose to focus on energy output this time, although Energy and Health seem extremely similarly patterned by their correlation value of 1. I observed that it was in the profitable recipes where energy output most correlated with the sell price of the recipes and had the highest energy output values. Comparatively, energy output fluctuates a lot for recipes where there is no money to be made or money to be lost. I also found that curiously, the recipes where money is lost also have the higher sell price, which was not what I would expect when I consider profit. Even more surprisingly, these recipes did not have the highest energy output overall. Because the energy output by sell price fluctuated so much (even to an extent with the profitable recipes) I would say that sell price is not a good indicator of best energetic value of a recipe, especially for the recipes that you would consume since they hurt the player profit-wise (zero money and money lost groups).</em></p>
+</div>
+<div id="dimensionality-reduction" class="section level2">
+<h2>5. Dimensionality Reduction</h2>
+<pre class="r"><code># Finding optimum number of clusters
+recipes_dat &lt;- recipes %&gt;% select(Cost, Sell, Energy)
+sil_width &lt;- vector()
+for (i in 2:10) {
+    pam_fit &lt;- pam(recipes_dat, k = i)
+    sil_width[i] &lt;- pam_fit$silinfo$avg.width
+}
+ggplot() + geom_line(aes(x = 1:10, y = sil_width)) + scale_x_continuous(name = &quot;k&quot;, 
+    breaks = 1:10)</code></pre>
+<p><img src="../../project/project1_files/figure-html/unnamed-chunk-7-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p><em>I found the optimum number of clusters between Cost, Sell, and Energy variables. I did this by applying these variables to the silhouette width method and testing different k values against the silhouette width. I visualized this in a line plot, and chose the k-value with the highest silohuette width value as the indicator for the optimal number of clusters. This was when k=2.</em></p>
+<pre class="r"><code># PAM Cluster Visualization
+pam1 &lt;- recipes_dat %&gt;% scale %&gt;% pam(k = 2)
+pam_clust &lt;- recipes_dat %&gt;% mutate(cluster = as.factor(pam1$clustering)) %&gt;% 
+    group_by(cluster) %&gt;% summarize_if(is.numeric, mean, na.rm = T)
+recipes %&gt;% mutate(cluster = as.factor(pam1$clustering)) %&gt;% 
+    ggpairs(columns = c(&quot;Cost&quot;, &quot;Sell&quot;, &quot;Energy&quot;), aes(color = cluster))</code></pre>
+<p><img src="../../project/project1_files/figure-html/unnamed-chunk-8-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p><em>Next, I scaled the data to fit 2 clusters and performed PAM clustering accordingly. I summarized the variables by mean in the clusters and created a visualization plot that highlights the overlap between the clusters, visualizes the clusters themselves in a scatterplot, and lists their cooresponding correlation values.</em></p>
+<pre class="r"><code># Silhouette Goodness of Fit
+plot(pam1, which = 2)</code></pre>
+<p><img src="../../project/project1_files/figure-html/unnamed-chunk-9-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p><em>I interpreted the clusters in two ways. Firstly, I found the Goodness of Fit using a Silhouette plot of the PAM clusters. The average silhouette width was 0.43, which put the clusters in a weak, artificial range where there is poor separation and cohesion of the clusters.</em></p>
+<p><em>As for the visual plot of the clustering, there was a high correlation of 0.773 between Cost and Sell price for the recipes. This is as predicted since, assumably, a recipe that costs more to make would also result in having a higher price if sold. Interestingly, there is only a moderate correlation of 0.520 between Cost and Energy output, which indicates that a recipe that costs more to make does not necessarily give the higher energy output when consumed. There is a high correlation of 0.719 between Energy and Sell, which indicates that the sell price of recipes cooked is more strongly connected to the energy output of the recipe. There is a moderate amount of overlap in the clusters, indicated by the visualization alone, but paired alongside the Goodness of Fit, there is a significant amount of variance in the clusters.</em></p>
+</div>
+
+            
+        <hr>         <div class="related-posts">
+                <h5>Related Posts</h5>
+                
+              </div> 
+            </div>
+          </div>
+
+   <hr>  <div class="disqus">
+  <div id="disqus_thread"></div>
+  <script type="text/javascript">
+
+    (function() {
+      
+      
+      if (window.location.hostname == "localhost")
+        return;
+
+      var disqus_shortname = '';
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+  <a href="http://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+</div> 
+        </div>
+      </div>
+    </div>
+
+    
+    <footer>
+  <div id="footer">
+    <div class="container">
+      <p class="text-muted">&copy; All rights reserved. Powered by <a href="https://gohugo.io/">Hugo</a> and
+      <a href="http://www.github.com/nurlansu/hugo-sustain/">sustain</a> with ♥</p>
+    </div>
+  </div>
+</footer>
+<div class="footer"></div>
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+<script src="../../js/docs.min.js"></script>
+<script src="../../js/main.js"></script>
+
+<script src="../../js/ie10-viewport-bug-workaround.js"></script>
+
+
+    
+  </body>
+</html>

@@ -1,0 +1,19 @@
+.07/0.---
+title: "Projects"
+output: html_document
+hidedate: true
+hiderelated: true
+hidediscus: true
+---
+
+Check out some of my coding projects below:
+
+
+<i class="fa fa-signal"></i> &nbsp; [Wrangling & Exploratory Analysis for Recipes and Profit in Stardew Valley](/project/project1/)
+
+<i class="fa fa-line-chart"></i> &nbsp; [Modeling, Inference, & Prediction for Fishing in Stardew Valley](/project/project2/)
+
+<!--
+<i class="fa fa-pie-chart"></i> 
+<i class="fa fa-tasks"></i> 
+-->
